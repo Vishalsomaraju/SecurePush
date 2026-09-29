@@ -58,40 +58,89 @@ export function buildDiffPrompt(files: FileDiff[]): string {
  * so the caller (verify.ts / the provider itself) is responsible for logging when
  * this returns [] because parsing failed vs. because the model genuinely found nothing.
  */
-export function parseFindingsResponse(raw: string): { findings: Finding[]; parseFailed: boolean } {
-  let text = raw.trim();
-  // Strip markdown code fences if the model added them despite instructions.
-  if (text.startsWith("```")) {
-    text = text.replace(/^```(?:json)?\n?/, "").replace(/```$/, "").trim();
-  }
+function cleanFindingsList(parsed: any[]): Finding[] {
+  return parsed
+    .filter(
+      (f: any) =>
+        typeof f?.file === "string" &&
+        (typeof f?.line === "number" || typeof f?.line === "string") &&
+        typeof f?.issue === "string" &&
+        typeof f?.severity === "string" &&
+        typeof f?.originalLine === "string" &&
+        typeof f?.proposedFix === "string"
+    )
+    .map((f: any) => ({
+      file: f.file,
+      line: typeof f.line === "number" ? f.line : parseInt(f.line, 10) || 1,
+      issue: f.issue,
+      severity: f.severity,
+      originalLine: f.originalLine,
+      proposedFix: f.proposedFix,
+      extractedSecret: typeof f.extractedSecret === "string" ? f.extractedSecret : undefined,
+      envVarName: typeof f.envVarName === "string" ? f.envVarName : undefined,
+    }));
+}
 
+/**
+ * A malformed/non-JSON response is treated as zero findings rather than crashing —
+ * a parsing failure must never silently skip the scan without telling the user,
+ * so the caller (verify.ts / the provider itself) is responsible for logging when
+ * this returns [] because parsing failed vs. because the model genuinely found nothing.
+ */
+export function parseFindingsResponse(raw: string): { findings: Finding[]; parseFailed: boolean } {
+  if (!raw || !raw.trim()) return { findings: [], parseFailed: false };
+
+  let text = raw.trim();
+
+  // Strip <think> reasoning tags (from DeepSeek, Nemotron, etc.)
+  text = text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+
+  // 1. Direct parse attempt
   try {
     const parsed = JSON.parse(text);
-    if (!Array.isArray(parsed)) return { findings: [], parseFailed: true };
+    if (Array.isArray(parsed)) {
+      return { findings: cleanFindingsList(parsed), parseFailed: false };
+    }
+    if (Array.isArray(parsed?.findings)) {
+      return { findings: cleanFindingsList(parsed.findings), parseFailed: false };
+    }
+  } catch {}
 
-    const findings: Finding[] = parsed
-      .filter(
-        (f: any) =>
-          typeof f?.file === "string" &&
-          typeof f?.line === "number" &&
-          typeof f?.issue === "string" &&
-          typeof f?.severity === "string" &&
-          typeof f?.originalLine === "string" &&
-          typeof f?.proposedFix === "string"
-      )
-      .map((f: any) => ({
-        file: f.file,
-        line: f.line,
-        issue: f.issue,
-        severity: f.severity,
-        originalLine: f.originalLine,
-        proposedFix: f.proposedFix,
-        extractedSecret: typeof f.extractedSecret === "string" ? f.extractedSecret : undefined,
-        envVarName: typeof f.envVarName === "string" ? f.envVarName : undefined,
-      }));
-
-    return { findings, parseFailed: false };
-  } catch {
-    return { findings: [], parseFailed: true };
+  // 2. Extract markdown code blocks ```json ... ``` or ``` ... ```
+  const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (codeBlockMatch) {
+    try {
+      const parsed = JSON.parse(codeBlockMatch[1].trim());
+      if (Array.isArray(parsed)) {
+        return { findings: cleanFindingsList(parsed), parseFailed: false };
+      }
+      if (Array.isArray(parsed?.findings)) {
+        return { findings: cleanFindingsList(parsed.findings), parseFailed: false };
+      }
+    } catch {}
   }
+
+  // 3. Extract JSON array anywhere in text: [ { ... } ] or empty []
+  const arrayMatch = text.match(/\[\s*\{[\s\S]*\}\s*\]/) || text.match(/\[\s*\]/);
+  if (arrayMatch) {
+    try {
+      const parsed = JSON.parse(arrayMatch[0]);
+      if (Array.isArray(parsed)) {
+        return { findings: cleanFindingsList(parsed), parseFailed: false };
+      }
+    } catch {}
+  }
+
+  // 4. Extract JSON object containing "findings": [ ... ]
+  const objMatch = text.match(/\{[\s\S]*"findings"\s*:\s*\[[\s\S]*?\][\s\S]*\}/);
+  if (objMatch) {
+    try {
+      const parsed = JSON.parse(objMatch[0]);
+      if (Array.isArray(parsed?.findings)) {
+        return { findings: cleanFindingsList(parsed.findings), parseFailed: false };
+      }
+    } catch {}
+  }
+
+  return { findings: [], parseFailed: true };
 }
