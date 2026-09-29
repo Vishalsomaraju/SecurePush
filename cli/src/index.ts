@@ -1,5 +1,24 @@
 #!/usr/bin/env node
-import "dotenv/config";
+import * as dotenv from "dotenv";
+import * as path from "path";
+import * as os from "os";
+import * as fs from "fs";
+
+// Load environment variables with fallback hierarchy:
+// 1. Repo-level .env (current working directory)
+dotenv.config();
+
+// 2. Global user ~/.securepush/.env
+const userGlobalEnv = path.join(os.homedir(), ".securepush", ".env");
+if (fs.existsSync(userGlobalEnv)) {
+  dotenv.config({ path: userGlobalEnv });
+}
+
+// 3. CLI root .env (for linked development CLI)
+const cliBundleEnv = path.resolve(__dirname, "../.env");
+if (fs.existsSync(cliBundleEnv)) {
+  dotenv.config({ path: cliBundleEnv });
+}
 import { Command } from "commander";
 import { init } from "./commands/init";
 import { verify } from "./commands/verify";

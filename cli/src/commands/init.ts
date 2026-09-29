@@ -8,7 +8,14 @@ import { buildIndex, saveIndex } from "../core/referenceIndex";
 import { getDiffSinceLastPush } from "../core/diff";
 
 function buildHookContent(): string {
-  return `#!/bin/bash\nexec < /dev/tty\nnpx --yes @vishalsomaraju/secure-push verify "$@" || exit 1\n`;
+  return `#!/bin/bash
+exec < /dev/tty
+if command -v securepush >/dev/null 2>&1; then
+  securepush verify "$@" || exit 1
+else
+  npx --yes @vishalsomaraju/secure-push verify "$@" || exit 1
+fi
+`;
 }
 
 async function detectTestCommand(repoRoot: string): Promise<string | null> {
