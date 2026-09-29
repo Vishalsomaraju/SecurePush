@@ -10,6 +10,46 @@ export function getClient(): HindsightClient {
 }
 
 /**
+ * Cache of initialized memory banks to avoid redundant ensureBank API calls.
+ */
+const knownBanks = new Set<string>();
+
+/**
+ * Ensures that the repository-specific memory bank exists on Hindsight.
+ * Creates the bank with an appropriate mission if missing.
+ */
+export async function ensureBank(bankId: string): Promise<boolean> {
+  if (!bankId || knownBanks.has(bankId)) return true;
+
+  try {
+    const client = getClient();
+    try {
+      await client.getBankProfile(bankId);
+      knownBanks.add(bankId);
+      return true;
+    } catch {
+      try {
+        await client.createBank(bankId, {
+          name: bankId,
+          mission: "SecurePush repository memory: tracking recurring vulnerabilities, fixes, and developer decisions.",
+        });
+        knownBanks.add(bankId);
+        return true;
+      } catch (createErr: any) {
+        const msg = String(createErr?.message || createErr);
+        if (msg.includes("already exists") || createErr?.statusCode === 409) {
+          knownBanks.add(bankId);
+          return true;
+        }
+        return false;
+      }
+    }
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Sanitizes any raw secret strings or tokens from memory text.
  * Ensures the web UI never displays raw credentials, keys, or tokens.
  */
@@ -58,6 +98,7 @@ export async function getSecurityMemories(bankId: string): Promise<MemoryResult>
 
   try {
     const client = getClient();
+    await ensureBank(bankId);
     
     // Recall all security memories for this bank
     const res = await client.recall(
@@ -111,9 +152,28 @@ export async function getSecurityMemories(bankId: string): Promise<MemoryResult>
         accepted,
         rejected,
       },
+      isUnavailable: false,
     };
   } catch (err: any) {
-    console.error("Hindsight getSecurityMemories error:", err?.message || err);
+    const errMsg = String(err?.message || err || "");
+    const isNotFound = errMsg.toLowerCase().includes("not found") || err?.statusCode === 404 || err?.status === 404;
+
+    if (isNotFound) {
+      // The bank has not been created yet or has no stored memories.
+      // Return clean empty state (honest empty state, not an unavailable outage error).
+      return {
+        memories: [],
+        stats: {
+          totalMemories: 0,
+          decisions: 0,
+          accepted: 0,
+          rejected: 0,
+        },
+        isUnavailable: false,
+      };
+    }
+
+    console.error("Hindsight getSecurityMemories error:", errMsg);
     return {
       memories: [],
       isUnavailable: true,
@@ -143,6 +203,7 @@ export interface InsightCallout {
 export async function getSmartInsight(bankId: string): Promise<InsightCallout | null> {
   try {
     const client = getClient();
+    await ensureBank(bankId);
     const res = await client.reflect(
       bankId,
       "What is the most recurring security vulnerability or bad pattern in this repository? Be concise and identify the single most prominent pattern."
@@ -153,8 +214,12 @@ export async function getSmartInsight(bankId: string): Promise<InsightCallout | 
         pattern: "Recurring Pattern",
       };
     }
-  } catch (err) {
-    console.error("Hindsight reflect error:", err);
+  } catch (err: any) {
+    const errMsg = String(err?.message || err || "");
+    const isNotFound = errMsg.toLowerCase().includes("not found") || err?.statusCode === 404 || err?.status === 404;
+    if (!isNotFound) {
+      console.error("Hindsight reflect error:", errMsg);
+    }
   }
   return null;
 }
