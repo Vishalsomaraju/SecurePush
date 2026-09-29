@@ -12,7 +12,7 @@ export const metadata = {
 export default function Home() {
   return (
     <>
-      <GlobalNav />
+      <GlobalNav />   
       <main className="page" style={{ padding: 0 }}>
       
 

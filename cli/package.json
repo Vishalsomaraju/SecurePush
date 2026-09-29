@@ -1,6 +1,6 @@
 {
   "name": "@vishalsomaraju/secure-push",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "AI-powered Git pre-push hook for catching secrets, vulnerabilities, and hallucinated dependencies.",
   "type": "commonjs",
   "bin": {

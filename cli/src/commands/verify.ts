@@ -145,7 +145,7 @@ export async function verify() {
 
   const git2 = simpleGit(repoRoot);
   await git2.add(".");
-  await git2.raw(["commit", "--amend", "--no-edit"]);
+  await git2.raw(["commit", "--amend", "--no-edit", "--allow-empty"]);
   console.log(chalk.green("✓ Committed accepted fixes (amended)."));
   // NOTE: This simple --amend approach only works cleanly when the secret was introduced in the 
   // single most recent unpushed commit. Handling older unpushed commits requires a scripted 
