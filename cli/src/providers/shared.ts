@@ -3,7 +3,15 @@ import { Finding } from "../core/scan";
 
 export function buildSystemPrompt(pastPatterns: string[] = []): string {
   const hindsightContext = pastPatterns.length > 0 
-    ? `\n\nCRITICAL CONTEXT FROM REPOSITORY HISTORY:\nThe following issues have been repeatedly flagged in this codebase in the past. Pay special attention to ensure they are not being reintroduced:\n${pastPatterns.map(p => `- ${p}`).join("\n")}`
+    ? `\n\nRELEVANT REPOSITORY MEMORY:
+These are memories retrieved from previous SecurePush reviews of this repository.
+Use them as historical context only.
+Do not assume a previous finding is present in the current diff.
+Verify every issue against the current code.
+Give priority to the current diff over historical memory.
+
+Previous repository memories:
+${pastPatterns.map(p => `- ${p}`).join("\n")}`
     : "";
 
   return `You are a security and code-quality reviewer for a git pre-push hook called SecurePush. You review diffs of code that may have been written by an AI coding agent (Claude Code, Cursor, Codex, Copilot).

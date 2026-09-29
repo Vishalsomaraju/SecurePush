@@ -72,12 +72,12 @@ export async function verify() {
     }
   }
 
-  // Hindsight recall — past-pattern context for this repo. Stubbed until
-  // Prompt 13 wires a real client; returns no patterns until then.
-  const memory = await recall(config.bank_id);
+  // Hindsight recall — queries past security findings, fixes, and developer decisions
+  // relevant to the changed files to provide historical context to the reviewer.
+  const memory = await recall(config.bank_id, files);
   if (memory.pastPatterns.length > 0) {
-    console.log(chalk.gray("\nFrom this repo's history:"));
-    memory.pastPatterns.forEach((p) => console.log(chalk.gray(`  - ${p}`)));
+    console.log(chalk.cyan("\nFrom repository memory:"));
+    memory.pastPatterns.forEach((p) => console.log(chalk.gray(`  • ${p}`)));
   }
 
   console.log(chalk.gray(`\nScanning ${files.length} changed file(s)...`));
@@ -109,15 +109,27 @@ export async function verify() {
         "\n✗ BLOCKED — a critical-severity finding was rejected. Push blocked regardless of other accepted fixes."
       )
     );
+    let retainedAny = false;
     for (const d of decisions.filter((d) => !d.accepted)) {
-      await retain({
+      const ok = await retain({
         bankId: config.bank_id,
+        repoName,
         file: d.finding.file,
         issue: d.finding.issue,
         severity: d.finding.severity,
         action: "blocked",
+        decision: "rejected",
+        testOutcome: "untested",
+        pushOutcome: "push_blocked",
+        envVarName: d.finding.envVarName,
+        originalLine: d.finding.originalLine,
+        proposedFix: d.finding.proposedFix,
         timestamp: new Date().toISOString(),
       });
+      if (ok) retainedAny = true;
+    }
+    if (retainedAny) {
+      console.log(chalk.green("✓ Security decision remembered by Hindsight"));
     }
     await reportScanToCloud(config, repoName, decisions.map(d => ({ ...d.finding, action: d.accepted ? "fixed" : "blocked" })), true, startTime);
     process.exit(1);
@@ -128,6 +140,30 @@ export async function verify() {
     console.log(chalk.yellow("\nNo fixes accepted — nothing to apply."));
     console.log(chalk.gray("Running tests..."));
     const noFixResult = await runTests(config.test_command, repoRoot);
+
+    let retainedAny = false;
+    for (const d of decisions) {
+      const ok = await retain({
+        bankId: config.bank_id,
+        repoName,
+        file: d.finding.file,
+        issue: d.finding.issue,
+        severity: d.finding.severity,
+        action: "rejected",
+        decision: "rejected",
+        testOutcome: noFixResult.passed ? "tests_passed" : "tests_failed",
+        pushOutcome: noFixResult.passed ? "push_allowed" : "push_blocked",
+        envVarName: d.finding.envVarName,
+        originalLine: d.finding.originalLine,
+        proposedFix: d.finding.proposedFix,
+        timestamp: new Date().toISOString(),
+      });
+      if (ok) retainedAny = true;
+    }
+    if (retainedAny) {
+      console.log(chalk.green("✓ Security decision remembered by Hindsight"));
+    }
+
     if (noFixResult.passed) {
       console.log(chalk.green("✓ Tests passed → push allowed."));
       await reportScanToCloud(config, repoName, decisions.map(d => ({ ...d.finding, action: "rejected" })), false, startTime);
@@ -158,15 +194,27 @@ export async function verify() {
   console.log(chalk.gray("\nRunning tests..."));
   const result = await runTests(config.test_command, repoRoot);
 
+  let retainedAny = false;
   for (const d of decisions) {
-    await retain({
+    const ok = await retain({
       bankId: config.bank_id,
+      repoName,
       file: d.finding.file,
       issue: d.finding.issue,
       severity: d.finding.severity,
       action: d.accepted ? (result.passed ? "fixed" : "blocked") : "rejected",
+      decision: d.accepted ? "accepted" : "rejected",
+      testOutcome: result.passed ? "tests_passed" : "tests_failed",
+      pushOutcome: result.passed ? "push_allowed" : "push_blocked",
+      envVarName: d.finding.envVarName,
+      originalLine: d.finding.originalLine,
+      proposedFix: d.finding.proposedFix,
       timestamp: new Date().toISOString(),
     });
+    if (ok) retainedAny = true;
+  }
+  if (retainedAny) {
+    console.log(chalk.green("✓ Security decision remembered by Hindsight"));
   }
 
   if (result.passed) {

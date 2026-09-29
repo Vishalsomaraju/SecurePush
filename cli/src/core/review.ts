@@ -48,6 +48,21 @@ async function resetRejection(issue: string): Promise<void> {
     fs.writeFileSync(file, JSON.stringify(data, null, 2));
   } catch {}
 }
+async function muteFinding(issue: string): Promise<void> {
+  try {
+    const file = await getRejectionFile();
+    let data: any = {};
+    if (fs.existsSync(file)) {
+      data = JSON.parse(fs.readFileSync(file, "utf8"));
+    }
+    const currentMuted = Array.isArray(data.muted) ? data.muted : [];
+    if (!currentMuted.includes(issue)) {
+      data.muted = [...currentMuted, issue];
+      fs.writeFileSync(file, JSON.stringify(data, null, 2));
+    }
+  } catch {}
+}
+
 export async function reviewFindings(findings: Finding[]): Promise<Decision[]> {
   const decisions: Decision[] = [];
 
@@ -97,9 +112,8 @@ export async function reviewFindings(findings: Finding[]): Promise<Decision[]> {
           initialValue: false,
         });
         if (!p.isCancel(mute) && mute) {
-          // Real build: write a mute preference to Hindsight for this bank_id + issue type.
-          // Never muted automatically — only on this explicit confirmation.
-          console.log(chalk.gray(`  Muted "${finding.issue}" for this repo.`));
+          await muteFinding(finding.issue);
+          console.log(chalk.gray(`  Muted "${finding.issue}" for this repo (saved locally in .securepush.rejections.json).`));
         }
       }
     }

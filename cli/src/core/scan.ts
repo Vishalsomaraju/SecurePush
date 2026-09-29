@@ -59,7 +59,7 @@ async function routeToProvider(files: FileDiff[], provider: Provider, bankId?: s
         console.log("bank_id is required for cloud provider");
         process.exit(1);
       }
-      const result = await reviewWithCloud(files, bankId);
+      const result = await reviewWithCloud(files, bankId, pastPatterns);
       if (result !== null) return result;
       console.log("Cloud scan could not complete — push blocked.");
       process.exit(1);
