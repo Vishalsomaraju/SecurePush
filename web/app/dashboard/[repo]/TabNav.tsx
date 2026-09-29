@@ -9,6 +9,7 @@ export default function TabNav({ repo }: { repo: string }) {
 
   const tabs = [
     { name: 'Overview', path: baseUrl },
+    { name: 'Memory', path: `${baseUrl}/memory` },
     { name: 'History', path: `${baseUrl}/history` },
     { name: 'Insights', path: `${baseUrl}/insights` },
     { name: 'Settings', path: `${baseUrl}/settings` },

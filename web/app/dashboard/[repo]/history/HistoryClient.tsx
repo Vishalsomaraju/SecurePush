@@ -4,7 +4,14 @@ import { useState } from 'react';
 import Link from 'next/link';
 import styles from './page.module.css';
 
-export default function HistoryClient({ repo, repoData, history }: { repo: string, repoData: any, history: any[] }) {
+interface HistoryClientProps {
+  repo: string;
+  repoData: any;
+  stats: any;
+  history: any[];
+}
+
+export default function HistoryClient({ repo, repoData, stats, history }: HistoryClientProps) {
   const [filter, setFilter] = useState('all');
 
   const filteredHistory = history.filter(item => {
@@ -12,16 +19,21 @@ export default function HistoryClient({ repo, repoData, history }: { repo: strin
     return item.kind === filter;
   });
 
+  const totalCaught = (stats?.secrets_caught || 0) + (stats?.vulns_caught || 0) + (stats?.hallucinated_deps_caught || 0);
+
   return (
     <div>
       <section className={styles.hero}>
         <div>
-          <div className={styles.eyebrow}>history / insights for {repo}</div>
-          <h1 className={styles.heroTitle}>The repo remembers what almost shipped.</h1>
+          <div className={styles.eyebrow}>SCAN HISTORY FOR {repo}</div>
+          <h1 className={styles.heroTitle}>What happened in this repository.</h1>
           <p className={styles.lead}>
-            This is the differentiator made visible: a chronological log of
-            findings, the developer decision on each one, and the patterns that
-            keep showing up in the same repo.
+            A chronological record of push scans, gate decisions, and applied remediations. 
+            To view what the AI agent has learned, retained, and recalled across reviews, check the{' '}
+            <Link href={`/dashboard/${repo}/memory`} style={{ color: 'var(--text-primary)', textDecoration: 'underline' }}>
+              Memory
+            </Link>{' '}
+            tab.
           </p>
           <div className={styles.repoMeta} aria-label="Status legend">
             <div className={styles.smallChip}>
@@ -36,140 +48,55 @@ export default function HistoryClient({ repo, repoData, history }: { repo: strin
           </div>
           <div className={styles.actions}>
             <a className={`${styles.action} ${styles.actionPrimary}`} href="#timeline">Review timeline</a>
-            <Link className={styles.action} href="/dashboard">Back to dashboard</Link>
+            <Link className={styles.action} href={`/dashboard/${repo}/memory`}>View AI Memory →</Link>
           </div>
         </div>
 
-        <aside className={styles.statCard} aria-label="Near miss summary">
+        <aside className={styles.statCard} aria-label="Scan summary">
           <div className={styles.statTop}>
             <div>
-              <div className={styles.statLabel}>Near misses caught</div>
-              <div className={styles.statValue}>12</div>
+              <div className={styles.statLabel}>Security findings caught</div>
+              <div className={styles.statValue}>{totalCaught}</div>
             </div>
             <div className={styles.smallChip}>
-              <span className={`${styles.statusDot} ${styles.green}`} aria-hidden="true"></span>zero incidents
+              <span className={`${styles.statusDot} ${styles.green}`} aria-hidden="true"></span>
+              {stats?.pushes_blocked ? `${stats.pushes_blocked} blocked` : 'zero incidents'}
             </div>
           </div>
           <p className={styles.statCopy}>
-            SecurePush has caught <strong>7 secrets</strong>,
-            <strong>3 hallucinated dependencies</strong>, and
-            <strong>2 auth vulnerabilities</strong> before they reached GitHub
-            in this seeded repo.
+            SecurePush has inspected <strong>{stats?.total_scans || 0} push attempts</strong> in this repository, catching{' '}
+            <strong>{stats?.secrets_caught || 0} secrets</strong>,{' '}
+            <strong>{stats?.hallucinated_deps_caught || 0} dependency issues</strong>, and{' '}
+            <strong>{stats?.vulns_caught || 0} other vulnerabilities</strong> before push.
           </p>
           <div className={styles.statBreakdown}>
             <div className={styles.breakItem}>
-              <strong style={{ color: 'var(--accepted)' }}>7</strong>
-              <span>Hardcoded keys swapped to environment variables.</span>
+              <strong style={{ color: 'var(--accepted)' }}>{stats?.secrets_caught || 0}</strong>
+              <span>Hardcoded secrets intercepted.</span>
             </div>
             <div className={styles.breakItem}>
-              <strong style={{ color: 'var(--proposed)' }}>3</strong>
-              <span>Hallucinated packages rejected before they landed in package.json.</span>
+              <strong style={{ color: 'var(--proposed)' }}>{stats?.hallucinated_deps_caught || 0}</strong>
+              <span>Hallucinated packages blocked before package.json.</span>
             </div>
             <div className={styles.breakItem}>
-              <strong style={{ color: 'var(--removed)' }}>2</strong>
-              <span>Auth changes blocked because the test gate failed.</span>
+              <strong style={{ color: 'var(--removed)' }}>{stats?.pushes_blocked || 0}</strong>
+              <span>Push events stopped at the security gate.</span>
             </div>
           </div>
         </aside>
       </section>
 
-      <section className={styles.section}>
-        <div className={styles.sectionHead}>
-          <div className={styles.eyebrow}>repo health</div>
-          <h2>Recent behavior at a glance.</h2>
-          <p className={styles.sectionCopy}>
-            These widgets stay factual: what happened, how often, and where the
-            repo still needs guardrails.
-          </p>
-        </div>
-        <div className={styles.dashboardGrid}>
-          <article className={styles.widget}>
-            <div className={styles.widgetHead}>
-              <div className={styles.widgetLabel}>First-pass test success</div>
-              <div className={styles.widgetMeta}>last 30 pushes</div>
-            </div>
-            <div className={styles.widgetValue}>94%</div>
-            <div className={styles.widgetMeter} aria-hidden="true">
-              <span style={{ width: '94%' }}></span>
-            </div>
-            <p>Accepted fixes passed the test gate on the first run across the last 30 pushes.</p>
-          </article>
-          <article className={styles.widget}>
-            <div className={styles.widgetHead}>
-              <div className={styles.widgetLabel}>Secret findings this week</div>
-              <div className={styles.widgetMeta}>repeat cluster</div>
-            </div>
-            <div className={styles.widgetValue}>3x</div>
-            <div className={styles.widgetMeter} aria-hidden="true">
-              <span style={{ width: '68%' }}></span>
-            </div>
-            <p>Hardcoded secret findings came from the same auth and config areas again.</p>
-          </article>
-          <article className={styles.widget}>
-            <div className={styles.widgetHead}>
-              <div className={styles.widgetLabel}>Memory scope</div>
-              <div className={styles.widgetMeta}>shared bank</div>
-            </div>
-            <div className={styles.widgetValue}>1 repo</div>
-            <div className={styles.widgetMeter} aria-hidden="true">
-              <span style={{ width: '100%' }}></span>
-            </div>
-            <p>One shared memory bank ties the CLI scan and dashboard history together.</p>
-          </article>
-        </div>
-      </section>
-
-      <section className={styles.section} id="insights">
-        <div className={styles.sectionHead}>
-          <div className={styles.eyebrow}>memory callouts</div>
-          <h2>Patterns worth acting on next.</h2>
-          <p className={styles.sectionCopy}>
-            Hindsight is most useful when it turns repeated issues into a
-            concrete next move, not just a count.
-          </p>
-        </div>
-        <div className={styles.insightGrid}>
-          <article className={styles.insightCard}>
-            <div className={styles.tag}>Most repeated</div>
-            <strong>Secrets keep landing in auth and config files.</strong>
-            <p>
-              Three fixes this week came from the same area. Suggest an
-              environment-template scaffold the next time this repo is
-              initialized.
-            </p>
-          </article>
-          <article className={styles.insightCard}>
-            <div className={styles.tag}>Decision pattern</div>
-            <strong>Rejected fixes cluster around generated import rewrites.</strong>
-            <p>
-              Two amber findings were rejected in utility packages. Tighten
-              prompts or add a repo rule for dependency changes.
-            </p>
-          </article>
-          <article className={styles.insightCard}>
-            <div className={styles.tag}>Risk gate</div>
-            <strong>The test gate blocked both auth regressions before push.</strong>
-            <p>
-              That is the last hard stop in the flow. Keep it configured even
-              for small personal repos.
-            </p>
-          </article>
-        </div>
-      </section>
-
       <section className={styles.section} id="timeline">
         <div className={styles.sectionHead}>
           <div className={styles.eyebrow}>terminal log</div>
-          <h2>Chronological repo history.</h2>
+          <h2>Chronological scan history.</h2>
           <p className={styles.sectionCopy}>
-            Monospace timestamps, file-path formatting, and action labels make
-            the sequence readable like a real git log instead of another stack
-            of generic cards.
+            Monospace timestamps, file-path formatting, and action labels make the sequence readable like a real git log.
           </p>
         </div>
         <div className={styles.filters} role="toolbar" aria-label="Timeline filters">
           <button className={`${styles.filter} ${filter === 'all' ? styles.filterActive : ''}`} type="button" onClick={() => setFilter('all')}>
-            All findings
+            All findings ({history.length})
           </button>
           <button className={`${styles.filter} ${filter === 'fixed' ? styles.filterActive : ''}`} type="button" onClick={() => setFilter('fixed')}>
             Fixed
@@ -185,20 +112,19 @@ export default function HistoryClient({ repo, repoData, history }: { repo: strin
         <div className={styles.timeline}>
           {filteredHistory.length > 0 ? (
             filteredHistory.map((item, index) => {
-              // Simulated mapping of kind/badge logic based on what was shown in the original HTML mock
-              const kind = item.kind || (index % 3 === 0 ? 'fixed' : index % 3 === 1 ? 'rejected' : 'blocked');
+              const kind = item.kind || 'fixed';
               const badgeClass = kind === 'fixed' ? styles.badgeAccepted : kind === 'rejected' ? styles.badgeProposed : styles.badgeRemoved;
-              const severityBadge = kind === 'fixed' ? styles.badgeRemoved : kind === 'rejected' ? styles.badgeProposed : styles.badgeRemoved;
-              const severityText = kind === 'fixed' ? 'Critical' : kind === 'rejected' ? 'Medium' : 'High';
+              const severityBadge = kind === 'fixed' ? styles.badgeRemoved : kind === 'rejected' ? styles.badgeProposed : styles.badgeNeutral;
+              const severityText = item.severity || (kind === 'fixed' ? 'Critical' : kind === 'rejected' ? 'Medium' : 'High');
               
               return (
-                <article key={index} className={styles.entry} data-kind={kind}>
+                <article key={item.id || index} className={styles.entry} data-kind={kind}>
                   <div className={styles.timelineHead}>
                     <div>
                       <div className={styles.timelineMeta}>
-                        {new Date(item.timestamp || Date.now()).toISOString().replace('T', ' ').substring(0, 16)} / {repo} / bank_id {item.bank_id || 'unknown'}
+                        {item.timestamp ? new Date(item.timestamp).toISOString().replace('T', ' ').substring(0, 16) + ' UTC' : 'Recorded'} / {repo}
                       </div>
-                      <h3>{item.title || 'Hardcoded secret removed before push'}</h3>
+                      <h3>{item.title || 'Security scan event'}</h3>
                     </div>
                     <div className={styles.badgeRow}>
                       <span className={`${styles.badge} ${badgeClass}`}>
@@ -207,17 +133,28 @@ export default function HistoryClient({ repo, repoData, history }: { repo: strin
                       <span className={`${styles.badge} ${severityBadge}`}>{severityText}</span>
                     </div>
                   </div>
-                  <div className={styles.timelineCode}>
-                    {item.codeContext || 'apps/web/lib/auth.ts → const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY'}
-                  </div>
+                  {item.codeContext && (
+                    <div className={styles.timelineCode}>
+                      {item.codeContext}
+                    </div>
+                  )}
                   <p>
-                    {item.text || 'The developer accepted the environment variable fix, tests passed, and the push continued without exposing the key.'}
+                    {item.text || 'Security finding evaluated during pre-push scan.'}
                   </p>
                 </article>
               );
             })
           ) : (
-            <div style={{ padding: '24px', color: 'var(--text-muted)' }}>No history found for this filter.</div>
+            <div style={{ padding: '48px 24px', textAlign: 'center', background: 'var(--surface)', borderRadius: '12px', border: '1px dashed var(--border)' }}>
+              <div style={{ fontSize: '24px', marginBottom: '8px' }}>📋</div>
+              <h3 style={{ margin: '0 0 6px 0', fontFamily: 'var(--font-display)', fontSize: '18px' }}>No scan history recorded yet.</h3>
+              <p style={{ margin: '0', color: 'var(--text-muted)', fontSize: '14px' }}>
+                Run <code>securepush init</code> and push code to log security gate results. To view AI memory, visit the{' '}
+                <Link href={`/dashboard/${repo}/memory`} style={{ color: 'var(--text-primary)', textDecoration: 'underline' }}>
+                  Memory tab
+                </Link>.
+              </p>
+            </div>
           )}
         </div>
       </section>

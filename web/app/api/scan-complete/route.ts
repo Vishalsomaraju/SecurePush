@@ -17,7 +17,9 @@ export async function POST(req: NextRequest) {
       findings = [],
       muted = [],
       blocked = false,
-      commit_sha // Optional, preserved for backward compat with attestation
+      commit_sha, // Optional, preserved for backward compat with attestation
+      recalled_memories = [],
+      memory_updated = false
     } = payload;
 
     if (!bank_id || !repo_name) {
@@ -49,6 +51,13 @@ export async function POST(req: NextRequest) {
     
     const owner_id = profile.id;
 
+    const mergedThresholds = {
+      ...(typeof thresholds === 'object' && thresholds !== null ? thresholds : {}),
+      latest_recall: Array.isArray(recalled_memories) ? recalled_memories : [],
+      memory_updated: Boolean(memory_updated),
+      recalled_at: new Date().toISOString()
+    };
+
     // 2. Upsert repos config
     const { data: repo, error: dbError } = await supabaseAdmin
       .from('repos')
@@ -60,7 +69,7 @@ export async function POST(req: NextRequest) {
         provider,
         model,
         test_command,
-        thresholds,
+        thresholds: mergedThresholds,
         last_scan_at: new Date().toISOString()
       }, { onConflict: 'owner_id, name' })
       .select('id')

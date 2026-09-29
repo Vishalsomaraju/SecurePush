@@ -1,0 +1,352 @@
+.page {
+  width: 100%;
+}
+
+.hero {
+  margin-bottom: 32px;
+}
+
+.eyebrow {
+  margin-bottom: 12px;
+  color: var(--text-muted);
+  font: 500 12px/1.4 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.heroTitle {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 4vw, 44px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin: 0 0 14px 0;
+  color: var(--text-primary);
+}
+
+.lead {
+  margin: 0 0 20px 0;
+  max-width: 68ch;
+  color: var(--text-muted);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.bankBar {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.bankLabel {
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+
+.bankId {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.updatedBanner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  margin: 20px 0 28px;
+  border-radius: 8px;
+  background: rgba(62, 207, 142, 0.08);
+  border: 1px solid rgba(62, 207, 142, 0.24);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.updatedDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accepted);
+  box-shadow: 0 0 8px var(--accepted);
+}
+
+.recalledSection {
+  margin: 32px 0;
+  padding: 24px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.recalledHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.recalledTitle {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.recalledCount {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accepted);
+  background: rgba(62, 207, 142, 0.1);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.recalledList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recalledItem {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px 16px;
+  border-radius: 6px;
+  border-left: 3px solid var(--accepted);
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.statCard {
+  padding: 20px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.statLabel {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+
+.statValue {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+.filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.filter {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.filter:hover {
+  color: var(--text-primary);
+  border-color: rgba(242, 240, 234, 0.3);
+}
+
+.filterActive {
+  background: var(--text-primary);
+  color: var(--bg);
+  border-color: var(--text-primary);
+}
+
+.memoryList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.memoryCard {
+  padding: 22px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color 150ms ease;
+}
+
+.memoryCard:hover {
+  border-color: rgba(242, 240, 234, 0.2);
+}
+
+.memoryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.memoryBadges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.badgeAccepted {
+  background: rgba(62, 207, 142, 0.12);
+  color: var(--accepted);
+  border: 1px solid rgba(62, 207, 142, 0.28);
+}
+
+.badgeRejected {
+  background: rgba(232, 163, 61, 0.12);
+  color: var(--proposed);
+  border: 1px solid rgba(232, 163, 61, 0.28);
+}
+
+.badgeCritical {
+  background: rgba(229, 72, 77, 0.12);
+  color: var(--removed);
+  border: 1px solid rgba(229, 72, 77, 0.28);
+}
+
+.badgeHigh {
+  background: rgba(232, 163, 61, 0.12);
+  color: var(--proposed);
+  border: 1px solid rgba(232, 163, 61, 0.28);
+}
+
+.badgeNeutral {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.memoryTimestamp {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.memoryText {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.memoryMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(242, 240, 234, 0.06);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.metaItem {
+  display: flex;
+  gap: 6px;
+}
+
+.metaKey {
+  color: var(--text-faint);
+}
+
+.emptyState {
+  padding: 64px 24px;
+  text-align: center;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.emptyTitle {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.emptyDesc {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 52ch;
+  margin: 0;
+}
+
+.unavailableState {
+  padding: 48px 24px;
+  border-radius: 12px;
+  background: rgba(232, 163, 61, 0.04);
+  border: 1px solid rgba(232, 163, 61, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.unavailableTitle {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--proposed);
+  margin: 0;
+}
+
+.unavailableDesc {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}

@@ -10,7 +10,15 @@ import { loadConfig } from "../config/schema";
 import { recall, retain } from "../memory/hindsight-client";
 
 
-async function reportScanToCloud(config: any, repoName: string, findings: any[], blocked: boolean, startTime: number) {
+async function reportScanToCloud(
+  config: any,
+  repoName: string,
+  findings: any[],
+  blocked: boolean,
+  startTime: number,
+  recalledMemories: string[] = [],
+  memoryUpdated: boolean = false
+) {
   const baseUrl = process.env.SECUREPUSH_API_URL || "http://localhost:3000";
   let branch = "main";
   try {
@@ -40,7 +48,9 @@ async function reportScanToCloud(config: any, repoName: string, findings: any[],
         action: f.action || "unknown"
       })),
       muted,
-      blocked
+      blocked,
+      recalled_memories: recalledMemories,
+      memory_updated: memoryUpdated
     })
   }).catch(() => {}); // Fire and forget, don't break CLI on network failure
 }
@@ -89,12 +99,12 @@ export async function verify() {
     const cleanResult = await runTests(config.test_command, repoRoot);
     if (cleanResult.passed) {
       console.log(chalk.green("✓ Tests passed → push allowed."));
-      await reportScanToCloud(config, repoName, [], false, startTime);
+      await reportScanToCloud(config, repoName, [], false, startTime, memory.pastPatterns, false);
       process.exit(0);
     } else {
       console.log(chalk.red("✗ Tests FAILED — push BLOCKED. Nothing reaches GitHub."));
       console.log(chalk.gray(cleanResult.output));
-      await reportScanToCloud(config, repoName, [], true, startTime);
+      await reportScanToCloud(config, repoName, [], true, startTime, memory.pastPatterns, false);
       process.exit(1);
     }
   }
@@ -131,7 +141,7 @@ export async function verify() {
     if (retainedAny) {
       console.log(chalk.green("✓ Security decision remembered by Hindsight"));
     }
-    await reportScanToCloud(config, repoName, decisions.map(d => ({ ...d.finding, action: d.accepted ? "fixed" : "blocked" })), true, startTime);
+    await reportScanToCloud(config, repoName, decisions.map(d => ({ ...d.finding, action: d.accepted ? "fixed" : "blocked" })), true, startTime, memory.pastPatterns, retainedAny);
     process.exit(1);
   }
 
@@ -166,12 +176,12 @@ export async function verify() {
 
     if (noFixResult.passed) {
       console.log(chalk.green("✓ Tests passed → push allowed."));
-      await reportScanToCloud(config, repoName, decisions.map(d => ({ ...d.finding, action: "rejected" })), false, startTime);
+      await reportScanToCloud(config, repoName, decisions.map(d => ({ ...d.finding, action: "rejected" })), false, startTime, memory.pastPatterns, retainedAny);
       process.exit(0);
     } else {
       console.log(chalk.red("✗ Tests FAILED — push BLOCKED. Nothing reaches GitHub."));
       console.log(chalk.gray(noFixResult.output));
-      await reportScanToCloud(config, repoName, decisions.map(d => ({ ...d.finding, action: "rejected" })), true, startTime);
+      await reportScanToCloud(config, repoName, decisions.map(d => ({ ...d.finding, action: "rejected" })), true, startTime, memory.pastPatterns, retainedAny);
       process.exit(1);
     }
   }
@@ -219,12 +229,12 @@ export async function verify() {
 
   if (result.passed) {
     console.log(chalk.green("✓ Tests passed → push allowed."));
-    await reportScanToCloud(config, repoName, decisions.map(d => ({ ...d.finding, action: d.accepted ? "fixed" : "rejected" })), false, startTime);
+    await reportScanToCloud(config, repoName, decisions.map(d => ({ ...d.finding, action: d.accepted ? "fixed" : "rejected" })), false, startTime, memory.pastPatterns, retainedAny);
     process.exit(0);
   } else {
     console.log(chalk.red("✗ Tests FAILED — push BLOCKED. Nothing reaches GitHub."));
     console.log(chalk.gray(result.output));
-    await reportScanToCloud(config, repoName, decisions.map(d => ({ ...d.finding, action: d.accepted ? "blocked" : "rejected" })), true, startTime);
+    await reportScanToCloud(config, repoName, decisions.map(d => ({ ...d.finding, action: d.accepted ? "blocked" : "rejected" })), true, startTime, memory.pastPatterns, retainedAny);
     process.exit(1);
   }
 }
