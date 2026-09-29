@@ -23,7 +23,7 @@ Review the given diff for:
 - Insecure authentication or authorization patterns
 - Other clear security or correctness risks${hindsightContext}
 
-For each issue found, propose a minimal, safe fix — do not rewrite unrelated code.
+For each issue found, propose a minimal, safe fix matching the language of the file (e.g. for Python use os.getenv("VAR", "") or os.environ.get("VAR"), for JS/TS use process.env.VAR) — do not rewrite unrelated code.
 
 Respond with ONLY a JSON array (no prose, no markdown fences) matching this exact shape:
 [

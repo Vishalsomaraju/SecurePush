@@ -32,8 +32,23 @@ export async function applyAcceptedFixes(
     // console.log). Re-validate the line still matches what was scanned before
     // touching it, in case an earlier accepted fix on the same file shifted things.
     for (const { finding } of fileDecisions) {
-      const idx = finding.line - 1;
+      let idx = finding.line - 1;
+
+      // Robust line resolution:
+      // If finding.line is off or line content doesn't match, search by originalLine or secret content
       if (idx < 0 || idx >= lines.length || lines[idx].trim() !== finding.originalLine.trim()) {
+        const foundIdx = lines.findIndex((l) => l.trim() === finding.originalLine.trim());
+        if (foundIdx !== -1) {
+          idx = foundIdx;
+        } else if (finding.extractedSecret) {
+          const secretIdx = lines.findIndex((l) => l.includes(finding.extractedSecret!));
+          if (secretIdx !== -1) {
+            idx = secretIdx;
+          }
+        }
+      }
+
+      if (idx < 0 || idx >= lines.length) {
         console.log(
           chalk.red(
             `  ✗ ${file}:${finding.line} — line content changed since scan, skipping this fix (re-run to rescan).`
@@ -41,13 +56,38 @@ export async function applyAcceptedFixes(
         );
         continue;
       }
-      lines[idx] = finding.proposedFix;
+
+      // Preserve indentation of original line
+      const indent = lines[idx].match(/^(\s*)/)?.[1] || "";
+      const proposedTrimmed = finding.proposedFix.trim();
+      lines[idx] = indent + proposedTrimmed;
 
       if (finding.issue === "hardcoded_secret" && finding.extractedSecret && finding.envVarName) {
         await writeSecretToEnv(repoRoot, finding.envVarName, finding.extractedSecret);
         await ensureEnvIgnored(repoRoot);
         modifiedFiles.add(".env");
         modifiedFiles.add(".gitignore");
+      }
+    }
+
+    // For Python files: if we moved secrets to .env, ensure dotenv is imported & loaded
+    const hadSecretFix = fileDecisions.some((d) => d.finding.issue === "hardcoded_secret");
+    if (file.endsWith(".py") && hadSecretFix) {
+      const hasLoadDotenv = lines.some((l) => l.includes("load_dotenv"));
+      if (!hasLoadDotenv) {
+        const dotenvSnippet = [
+          "try:",
+          "    from dotenv import load_dotenv",
+          "    load_dotenv()",
+          "except ImportError:",
+          "    pass",
+        ];
+        const importIdx = lines.findIndex((l) => l.startsWith("import ") || l.startsWith("from "));
+        if (importIdx !== -1) {
+          lines.splice(importIdx + 1, 0, ...dotenvSnippet);
+        } else {
+          lines.unshift(...dotenvSnippet);
+        }
       }
     }
 
